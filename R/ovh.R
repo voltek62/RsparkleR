@@ -422,17 +422,18 @@ create_instance <- function(client, projectId, flavorId, imageId, name, region, 
 #'
 #' @return JSON
 #'
-#' @import dplyr
 #' @export
 create_docker <- function(client, projectId, name, regionVM, typeVM, sshKeyId) {
 
   flavors <- get_flavors(client, projectId)
-  flavors <- select(filter(flavors,grepl(regionVM,flavors$region) & flavors$available==TRUE & flavors$name==typeVM),id)
-  flavorId <- toString(flavors[[1]])
+  flavorsList <- flavors[which(grepl(regionVM,flavors$region) & flavors$available==TRUE & flavors$name==typeVM),
+                         names(flavors) %in% c("id")]
+  flavorId <- toString(flavorsList[[1]])
 
   images <- get_images(client, projectId)
-  images <- select(filter(images,grepl(regionVM,images$region) & images$status=="active" & grepl("Docker",images$name)),id)
-  imageId <- toString(images[[1]])
+  imagesList <- images[which(grepl(regionVM,images$region) & images$status=="active" & grepl("Docker",images$name)),
+                       names(images) %in% c("id")]
+  imageId <- toString(imagesList[[1]])
 
   api_instance <- paste("/cloud/project/",projectId,"/instance",sep="")
 

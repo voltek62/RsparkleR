@@ -442,17 +442,21 @@ sparkler.crawl <-function(vm, url, topUrls, topGroups, maxIter, debug=FALSE, mod
 #'
 #' }
 #'
-#' @import dplyr
+#' @import data.table
 #' @export
 sparkler.check <- function(vm, pattern, crawlid, maxUrls) {
 
   crawlDF <- sparkler.read.csv(vm, pattern, crawlid, maxUrls)
 
-  crawlDFGroup <- group_by(crawlDF,crawlDF$status) %>%
-    summarize(count = n())
+  #Use data.table in spite of dplyr
+  crawlDT <- data.table(crawlDF)
+  crawlDFGroup <- crawlDT[, list(length(url)),
+                          by = crawlDT$status]
+  colnames(crawlDFGroup) <- c("status","count")
 
   total <- sum(crawlDFGroup$count)
   totalUnfetched <- 0
+  totalFetched <- 0
   complete <- 0
 
   if (total>1) {
@@ -565,7 +569,7 @@ sparkler.stop <-function(vm, debug=FALSE) {
 #'
 #' }
 #'
-#' @importFrom utils read.csv
+#' @import data.table
 #' @export
 sparkler.read.csv <- function(vm, pattern, crawl_id, limit, extracted=FALSE) {
 
@@ -587,11 +591,11 @@ sparkler.read.csv <- function(vm, pattern, crawl_id, limit, extracted=FALSE) {
   url_solr <- paste(url_solr,"&fq=crawl_id:",crawl_id,sep="")
   url_solr <- paste(url_solr,"&wt=csv",sep="")
 
-  myMessage(url_solr, level = 3)
+  myMessage(paste0("Read: ",url_solr), level = 3)
 
   res <- tryCatch({
 
-    read.csv(url(url_solr),
+    data.table::fread(url_solr,
              header=TRUE,
              encoding="UTF-8",
              stringsAsFactors=FALSE)
